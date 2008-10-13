@@ -1,0 +1,99 @@
+/*
+ * Clutter-Helix.
+ *
+ * Helix integration library for Clutter.
+ *
+ * Authored By Rusty Lynch  <rusty.lynch@intel.com>
+ *
+ * Derived from Clutter-Gst, Authored By 
+ * Matthew Allum  <mallum@openedhand.com>
+ * Jorn Baayen <jorn@openedhand.com>
+ *
+ * Copyright 2006 OpenedHand
+ * Copyright 2008 Intel Corp.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
+ */
+
+/**
+ * SECTION:clutter-helix-version
+ * @short_description: Versioning Macros
+ *
+ * Version checking macros.
+ */
+
+#ifndef __CLUTTER_HELIX_VERSION_H__
+#define __CLUTTER_HELIX_VERSION_H__
+
+/**
+ * CLUTTER_HELIX_MAJOR_VERSION:
+ *
+ * ClutterHelix major version (e.g. "1", if %CLUTTER_HELIX_VERSION is "1.2.3")
+ */
+#define CLUTTER_HELIX_MAJOR_VERSION   (@CLUTTER_HELIX_MAJOR_VERSION@)
+
+/**
+ * CLUTTER_HELIX_MINOR_VERSION:
+ *
+ * ClutterHelix minor version (e.g. "2", if %CLUTTER_HELIX_VERSION is "1.2.3")
+ */
+#define CLUTTER_HELIX_MINOR_VERSION   (@CLUTTER_HELIX_MINOR_VERSION@)
+
+/**
+ * CLUTTER_HELIX_MICRO_VERSION:
+ *
+ * ClutterHelix micro version (e.g. "3", if %CLUTTER_HELIX_VERSION is "1.2.3")
+ */
+#define CLUTTER_HELIX_MICRO_VERSION   (@CLUTTER_HELIX_MICRO_VERSION@)
+
+/**
+ * CLUTTER_HELIX_VERSION:
+ *
+ * ClutterHelix full version (e.g. "1.2.3")
+ */
+#define CLUTTER_HELIX_VERSION         (@CLUTTER_HELIX_VERSION@)
+
+/**
+ * CLUTTER_HELIX_VERSION_S:
+ *
+ * ClutterHelix full version, encoded as a string.
+ */
+#define CLUTTER_HELIX_VERSION_S       "@CLUTTER_HELIX_VERSION@"
+
+/**
+ * CLUTTER_HELIX_VERSION_HEX:
+ *
+ * ClutterHelix full version, encoded as an hexadecimal value.
+ */
+#define CLUTTER_HELIX_VERSION_HEX     ((CLUTTER_HELIX_MAJOR_VERSION << 24) | \
+                                     (CLUTTER_HELIX_MINOR_VERSION << 16) | \
+                                     (CLUTTER_HELIX_MICRO_VERSION << 8))
+
+/**
+ * CLUTTER_HELIX_CHECK_VERSION:
+ * @major: major version, like 1 in 1.2.3
+ * @minor: minor version, like 2 in 1.2.3
+ * @micro: micro version, like 3 in 1.2.3
+ *
+ * Evaluates to %TRUE if the version of ClutterHelix is greater than
+ * the @major, @minor and @micro values.
+ */
+#define CLUTTER_HELIX_CHECK_VERSION(major,minor,micro) \
+        (CLUTTER_HELIX_MAJOR_VERSION > (major) || \
+         (CLUTTER_HELIX_MAJOR_VERSION == (major) && CLUTTER_HELIX_MINOR_VERSION > (minor)) || \
+         (CLUTTER_HELIX_MAJOR_VERSION == (major) && CLUTTER_HELIX_MINOR_VERSION == (minor) && CLUTTER_HELIX_MICRO_VERSION >= (micro)))
+
+#endif /* __CLUTTER_HELIX_VERSION_H__ */

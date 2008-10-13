@@ -1,0 +1,11 @@
+prefix=@prefix@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: clutter-helix
+Description: Clutter Helix integration
+Version: @VERSION@
+Libs: -L${libdir} -lclutter-helix-@CLUTTER_HELIX_MAJORMINOR@ 
+Cflags: -I${includedir}/clutter-@CLUTTER_HELIX_MAJORMINOR@/clutter-helix
+Requires: clutter-@CLUTTER_HELIX_MAJORMINOR@
