@@ -80,7 +80,7 @@ PKG_CHECK_MODULES(CLUTTER, [$pkg_modules])
 
 dnl ========================================================================
 
-pkg_modules="helix-surface"
+pkg_modules="helix-player"
 PKG_CHECK_MODULES(SURFACE, [$pkg_modules])
 
 dnl ========================================================================

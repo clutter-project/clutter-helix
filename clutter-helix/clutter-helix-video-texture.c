@@ -52,7 +52,7 @@ struct _ClutterHelixVideoTexturePrivate
   int               buffer_percent;
   int               duration;
   guint             tick_timeout_id;
-  EClutterStubState state;
+  EHXPlayerState    state;
   GAsyncQueue      *async_queue;
   unsigned int      x;
   unsigned int      y;
@@ -203,7 +203,7 @@ get_playing (ClutterMedia *media)
   if (!priv->player)
     return FALSE;
 
-  return (priv->state == CLUTTER_STUB_STATE_PLAYING);
+  return (priv->state == PLAYER_STATE_PLAYING);
 }
 
 static void
@@ -523,7 +523,7 @@ on_state_change_cb (unsigned short old_state, unsigned short new_state, void *co
     
   g_object_notify (G_OBJECT (video_texture), "can-seek");
 
-  if (old_state != new_state && new_state == CLUTTER_STUB_STATE_READY) 
+  if (old_state != new_state && new_state == PLAYER_STATE_READY) 
     {
       g_object_notify (G_OBJECT (video_texture), "position");
       g_signal_emit_by_name (CLUTTER_MEDIA(video_texture), "eos");
@@ -561,7 +561,7 @@ clutter_helix_video_render_idle_func (gpointer data)
     return FALSE;
 }
 
-static void on_new_frame_cb(unsigned char *p, unsigned int size, ClutterStubImgInfo *Info, void *context)
+static void on_new_frame_cb(unsigned char *p, unsigned int size, PlayerImgInfo *Info, void *context)
 {
   ClutterHelixVideoTexture *video_texture = (ClutterHelixVideoTexture *)context;
   ClutterHelixVideoTexturePrivate *priv;
@@ -604,7 +604,7 @@ clutter_helix_video_texture_init (ClutterHelixVideoTexture *video_texture)
     G_TYPE_INSTANCE_GET_PRIVATE (video_texture,
                                  CLUTTER_HELIX_TYPE_VIDEO_TEXTURE,
                                  ClutterHelixVideoTexturePrivate);
-  priv->state = CLUTTER_STUB_STATE_READY;
+  priv->state = PLAYER_STATE_READY;
   get_player(&priv->player, on_buffering_cb, on_pos_length_cb, on_state_change_cb, on_new_frame_cb,(void *)video_texture);
 
   priv->async_queue = g_async_queue_new ();

@@ -37,7 +37,7 @@
 #include <glib-object.h>
 #include <clutter/clutter.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
-#include "clutter_stub.h"
+#include "player.h"
 G_BEGIN_DECLS
 #define CLUTTER_HELIX_TYPE_VIDEO_TEXTURE clutter_helix_video_texture_get_type()
 
