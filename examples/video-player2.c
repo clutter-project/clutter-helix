@@ -14,7 +14,7 @@ typedef struct VideoApp
     *control_seek1, *control_seek2, *control_seekbar, *control_label;
   gboolean         controls_showing, paused;
   guint            controls_timeout;
-  ClutterTimeline *controls_tl, *effect1_tl;
+  ClutterTimeline *controls_tl, *effect1_tl, *timeline;
 }
 VideoApp;
 
@@ -260,12 +260,13 @@ effect1_tl_cb (ClutterTimeline *timeline,
 int
 main (int argc, char *argv[])
 {
-  VideoApp            *app = NULL;
-  ClutterActor        *stage;
-  ClutterColor         stage_color = { 0x00, 0x00, 0x00, 0x00 };
-  ClutterColor         control_color1 = { 73, 74, 77, 0xee };
-  ClutterColor         control_color2 = { 0xcc, 0xcc, 0xcc, 0xff };
-  gint                 x,y;
+  VideoApp              *app = NULL;
+  ClutterActor          *stage;
+  ClutterColor           stage_color = { 0x00, 0x00, 0x00, 0x00 };
+  ClutterColor           control_color1 = { 73, 74, 77, 0xee };
+  ClutterColor           control_color2 = { 0xcc, 0xcc, 0xcc, 0xff };
+  gint                   x,y;
+  ClutterEffectTemplate *tplt;
 
   if (argc < 2)
     g_error("%s <video file>", argv[0]);
@@ -278,6 +279,10 @@ main (int argc, char *argv[])
   clutter_stage_set_color (CLUTTER_STAGE (stage), &stage_color); 
 
   app = g_new0(VideoApp, 1);
+
+  app->timeline = clutter_timeline_new_for_duration (4000);
+  clutter_timeline_set_loop (app->timeline, FALSE);
+  tplt = clutter_effect_template_new (app->timeline, CLUTTER_ALPHA_SINE_INC);
 
   app->vtexture = clutter_helix_video_texture_new ();
   
@@ -380,6 +385,23 @@ main (int argc, char *argv[])
 		    "notify::position",
 		    G_CALLBACK (tick),
 		    app);
+
+  clutter_timeline_start (app->timeline);
+
+  clutter_effect_rotate (tplt, app->vtexture,
+			 CLUTTER_X_AXIS, 
+			 360,
+			 CLUTTER_STAGE_WIDTH()/16, 
+			 CLUTTER_STAGE_HEIGHT()/16, 
+			 0,
+			 CLUTTER_ROTATE_CW,
+			 NULL, NULL);
+
+  clutter_actor_set_opacity (app->vtexture, 0);
+  clutter_effect_fade (tplt, app->vtexture, ~0, NULL, NULL);
+
+  clutter_actor_set_depth (app->vtexture, -10000);
+  clutter_effect_depth (tplt, app->vtexture, 0, NULL, NULL);
 
   clutter_media_set_playing (CLUTTER_MEDIA (app->vtexture), TRUE);
 
