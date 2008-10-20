@@ -40,6 +40,7 @@
 #include "config.h"
 
 #include "clutter-helix-audio.h"
+#include "player.h"
 
 #include <glib.h>
 

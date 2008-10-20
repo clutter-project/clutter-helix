@@ -1,5 +1,6 @@
 source_h = 					\
 	$(srcdir)/clutter-helix.h 		\
+        $(srcdir)/clutter-helix-version.h       \
 	$(srcdir)/clutter-helix-util.h 		\
 	$(srcdir)/clutter-helix-video-texture.h \
 	$(srcdir)/clutter-helix-audio.h

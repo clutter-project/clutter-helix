@@ -36,7 +36,6 @@
 #include <glib-object.h>
 #include <clutter/clutter.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
-#include "player.h"
 
 G_BEGIN_DECLS
 #define CLUTTER_HELIX_TYPE_AUDIO clutter_helix_audio_get_type()

@@ -41,6 +41,7 @@
 #include "config.h"
 
 #include "clutter-helix-video-texture.h"
+#include "player.h"
 
 #include <glib.h>
 
