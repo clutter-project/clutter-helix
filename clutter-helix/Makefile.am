@@ -1,9 +1,12 @@
 source_h = 					\
 	$(srcdir)/clutter-helix.h 		\
 	$(srcdir)/clutter-helix-util.h 		\
-	$(srcdir)/clutter-helix-video-texture.h
+	$(srcdir)/clutter-helix-video-texture.h \
+	$(srcdir)/clutter-helix-audio.h
 
-source_c = clutter-helix-util.c clutter-helix-video-texture.c
+source_c = clutter-helix-util.c          \
+           clutter-helix-video-texture.c \
+           clutter-helix-audio.c
 
 libclutter_helix_@CLUTTER_HELIX_MAJORMINOR@_la_SOURCES = $(MARSHALFILES)  \
                                                          $(source_c)      \

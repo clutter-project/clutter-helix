@@ -4,6 +4,7 @@
 #include <clutter/clutter.h>
 
 #include "clutter-helix-video-texture.h"
+#include "clutter-helix-audio.h"
 #include "clutter-helix-util.h"
 #include "clutter-helix-version.h"
 
