@@ -59,6 +59,7 @@ struct _ClutterHelixVideoTexturePrivate
   unsigned int      y;
   unsigned int      width;
   unsigned int      height;
+  gint              cid;
 };
 
 enum {
@@ -248,6 +249,7 @@ set_volume (ClutterMedia *media,
 {
   ClutterHelixVideoTexture *video_texture = CLUTTER_HELIX_VIDEO_TEXTURE(media);
   ClutterHelixVideoTexturePrivate *priv; 
+  unsigned short volume_in_u16;
 
   g_return_if_fail (CLUTTER_HELIX_IS_VIDEO_TEXTURE (video_texture));
 
@@ -255,8 +257,14 @@ set_volume (ClutterMedia *media,
   
   if (!priv->player)
     return;
- 
-  unsigned short volume_in_u16 = volume * (0xffff);
+
+  if (volume >= 1.0)
+    volume_in_u16 = 100;
+  else if (volume <= 0.0)
+    volume_in_u16 = 0;
+  else
+    volume_in_u16 = (int)(volume * (100.0));
+
   player_setvolume(priv->player, volume_in_u16);  
   g_object_notify (G_OBJECT (video_texture), "volume");
 }
@@ -266,7 +274,6 @@ get_volume (ClutterMedia *media)
 {
   ClutterHelixVideoTexture *video_texture = CLUTTER_HELIX_VIDEO_TEXTURE(media);
   ClutterHelixVideoTexturePrivate *priv; 
-  double volume;
 
   g_return_val_if_fail (CLUTTER_HELIX_IS_VIDEO_TEXTURE (video_texture), 0.0);
 
@@ -279,10 +286,8 @@ get_volume (ClutterMedia *media)
   ret = player_getvolume(priv->player);
   if (ret < 0)
     ret = 0;
-
-  volume = (double)ret/(double)(0xffff);
-
-  return volume;
+  
+  return (double)((double)ret/(double)100);
 }
 
 static gboolean
@@ -548,18 +553,29 @@ clutter_helix_video_render_idle_func (gpointer data)
     }
 
   error = NULL;
-  if (!clutter_texture_set_from_rgb_data (CLUTTER_TEXTURE (video_texture),
-					  buffer,
-					  FALSE,
-					  priv->width,
-					  priv->height,
-					  3 * priv->width ,
-					  3,
-					  CLUTTER_TEXTURE_RGB_FLAG_BGR,
-					  &error))
-    g_error ("clutter_texture_set_from_rgb_data: %s", error->message);
+  if (priv->cid == CID_ARGB32)
+    {
+      if (!clutter_texture_set_from_rgb_data (CLUTTER_TEXTURE (video_texture),
+					      buffer,
+					      TRUE,
+					      priv->width,
+					      priv->height,
+					      4 * priv->width ,
+					      4,
+					      CLUTTER_TEXTURE_RGB_FLAG_BGR,
+					      &error))
+	g_warning ("clutter_texture_set_from_rgb_data: %s", error->message);
+    }
+  else if (priv->cid == CID_LIBVA)
+    {
+      /* TODO: Add implementation to perform libva blitting */
+    }
+  else
+    {
+      g_warning ("Unsupported colorspace id: %i", priv->cid);
+    }
 
-    return FALSE;
+  return FALSE;
 }
 
 static void on_new_frame_cb(unsigned char *p, unsigned int size, PlayerImgInfo *Info, void *context)
@@ -575,6 +591,7 @@ static void on_new_frame_cb(unsigned char *p, unsigned int size, PlayerImgInfo *
   g_async_queue_push (priv->async_queue, p);
   priv->width = Info->cx;
   priv->height = Info->cy;
+  priv->cid = Info->cid;
   clutter_threads_add_idle_full (G_PRIORITY_HIGH_IDLE,
 				 clutter_helix_video_render_idle_func,
 				 video_texture,
