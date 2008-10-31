@@ -530,6 +530,20 @@ on_state_change_cb (unsigned short old_state, unsigned short new_state, void *co
     }
 }
 
+static void 
+on_error_cb (unsigned long code, char *message, void *context)
+{
+  GError *error;
+  ClutterHelixAudio *audio = (ClutterHelixAudio *)context;
+  
+  error = g_error_new (g_quark_from_string ("clutter-helix"),
+		       (int) code,
+		       message);
+  g_signal_emit_by_name (CLUTTER_MEDIA(audio), "error", error);
+
+  g_error_free (error);
+}
+
 static gboolean
 tick_timeout (ClutterHelixAudio *audio)
 {
@@ -549,17 +563,21 @@ static void
 clutter_helix_audio_init (ClutterHelixAudio *audio)
 {
   ClutterHelixAudioPrivate *priv;
+  PlayerCallbacks callbacks = {
+    on_pos_length_cb,
+    on_buffering_cb,
+    on_state_change_cb,
+    NULL,
+    on_error_cb
+  };
 
   audio->priv = priv =
     G_TYPE_INSTANCE_GET_PRIVATE (audio,
                                  CLUTTER_HELIX_TYPE_AUDIO,
                                  ClutterHelixAudioPrivate);
   priv->state = PLAYER_STATE_READY;
-  get_player(&priv->player, 
-	     on_buffering_cb, 
-	     on_pos_length_cb, 
-	     on_state_change_cb,
-	     NULL, /* on_new_frame_cb */
+  get_player(&priv->player,
+	     &callbacks,
 	     (void *)audio);
   priv->async_queue = g_async_queue_new ();
 }

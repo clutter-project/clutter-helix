@@ -86,6 +86,25 @@ G_DEFINE_TYPE_WITH_CODE (ClutterHelixVideoTexture,
                          G_IMPLEMENT_INTERFACE (CLUTTER_TYPE_MEDIA,
                                                 clutter_media_init));
 
+static void on_buffering_cb (unsigned int flags,
+			     unsigned short percentage,
+			     void *context);
+
+static void on_pos_length_cb (unsigned int pos, 
+			      unsigned int ulLength, 
+			      void *context);
+
+static void on_state_change_cb (unsigned short old_state, 
+				unsigned short new_state, 
+				void *context);
+
+static void on_new_frame_cb (unsigned char *p, 
+			     unsigned int size, 
+			     PlayerImgInfo *Info, 
+			     void *context);
+
+static void on_error_cb (unsigned long code, char *message, void *context);
+
 /* Interface implementation */
 
 static void
@@ -598,6 +617,20 @@ static void on_new_frame_cb(unsigned char *p, unsigned int size, PlayerImgInfo *
 				 NULL);
 }
 
+static void 
+on_error_cb (unsigned long code, char *message, void *context)
+{
+  GError *error;
+  ClutterHelixVideoTexture *video_texture = (ClutterHelixVideoTexture *)context;
+  
+  error = g_error_new (g_quark_from_string ("clutter-helix"),
+		       (int) code,
+		       message);
+  g_signal_emit_by_name (CLUTTER_MEDIA(video_texture), "error", error);
+
+  g_error_free (error);
+}
+
 static gboolean
 tick_timeout (ClutterHelixVideoTexture *video_texture)
 {
@@ -617,13 +650,20 @@ static void
 clutter_helix_video_texture_init (ClutterHelixVideoTexture *video_texture)
 {
   ClutterHelixVideoTexturePrivate *priv;
-
+  PlayerCallbacks callbacks = {
+    on_pos_length_cb,
+    on_buffering_cb,
+    on_state_change_cb,
+    on_new_frame_cb,
+    on_error_cb
+  };
+  
   video_texture->priv  = priv =
     G_TYPE_INSTANCE_GET_PRIVATE (video_texture,
                                  CLUTTER_HELIX_TYPE_VIDEO_TEXTURE,
                                  ClutterHelixVideoTexturePrivate);
   priv->state = PLAYER_STATE_READY;
-  get_player(&priv->player, on_buffering_cb, on_pos_length_cb, on_state_change_cb, on_new_frame_cb,(void *)video_texture);
+  get_player(&priv->player, &callbacks, (void *)video_texture);
 
   priv->async_queue = g_async_queue_new ();
 }
