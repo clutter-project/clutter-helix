@@ -135,10 +135,10 @@ set_uri (ClutterMedia *media,
        **/
       if (priv->tick_timeout_id == 0)
         {
-	  priv->tick_timeout_id = g_timeout_add (TICK_TIMEOUT * 1000,
+          priv->tick_timeout_id = g_timeout_add (TICK_TIMEOUT * 1000,
 						 (GSourceFunc) tick_timeout,
 						 video_texture);
-	}
+        }
        
       player_openurl(priv->player, priv->uri);
     } 
@@ -147,7 +147,7 @@ set_uri (ClutterMedia *media,
       priv->uri = NULL;
     
       if (priv->tick_timeout_id > 0) 
-	{
+        {
 	  g_source_remove (priv->tick_timeout_id);
 	  priv->tick_timeout_id = 0;
 	}
@@ -180,6 +180,22 @@ get_uri (ClutterMedia *media)
   return priv->uri;
 }
 
+static gboolean
+get_playing (ClutterMedia *media)
+{
+  ClutterHelixVideoTexture *video_texture = CLUTTER_HELIX_VIDEO_TEXTURE(media);
+  ClutterHelixVideoTexturePrivate *priv; 
+
+  g_return_val_if_fail (CLUTTER_HELIX_IS_VIDEO_TEXTURE (video_texture), FALSE);
+
+  priv = video_texture->priv;
+
+  if (!priv->player)
+    return FALSE;
+
+  return (priv->state == PLAYER_STATE_PLAYING);
+}
+
 static void
 set_playing (ClutterMedia *media,
 	     gboolean         playing)
@@ -196,35 +212,19 @@ set_playing (ClutterMedia *media,
         
   if (priv->uri) 
     {
-      if (playing)
-	player_begin(priv->player);
-      else
-	player_pause(priv->player);
+      if (playing && !get_playing(media))
+        player_begin(priv->player);
+      else if (!playing && get_playing(media))
+        player_pause(priv->player);
     } 
   else 
     {
       if (playing)
-	g_warning ("Tried to play, but no URI is loaded.");
+        g_warning ("Tried to play, but no URI is loaded.");
     }
   
   g_object_notify (G_OBJECT (video_texture), "playing");
   g_object_notify (G_OBJECT (video_texture), "position");
-}
-
-static gboolean
-get_playing (ClutterMedia *media)
-{
-  ClutterHelixVideoTexture *video_texture = CLUTTER_HELIX_VIDEO_TEXTURE(media);
-  ClutterHelixVideoTexturePrivate *priv; 
-
-  g_return_val_if_fail (CLUTTER_HELIX_IS_VIDEO_TEXTURE (video_texture), FALSE);
-
-  priv = video_texture->priv;
-
-  if (!priv->player)
-    return FALSE;
-
-  return (priv->state == PLAYER_STATE_PLAYING);
 }
 
 static void
@@ -513,6 +513,18 @@ on_buffering_cb (unsigned int flags,
   g_object_notify (G_OBJECT (video_texture), "buffer-percent");
 }
 
+static gboolean
+emit_eos_idle_func(gpointer data)
+{
+  if (!data)
+    return FALSE;
+
+  ClutterHelixVideoTexture *vtexture = (ClutterHelixVideoTexture *)data;
+  g_signal_emit_by_name (CLUTTER_MEDIA(vtexture), "eos");
+  return FALSE;
+}
+
+/* May get called with a mutex held in helix */
 static void
 on_pos_length_cb (unsigned int pos, unsigned int ulLength, void *context)
 {
@@ -530,8 +542,14 @@ on_pos_length_cb (unsigned int pos, unsigned int ulLength, void *context)
   priv->duration = ulLength / 1000;
 
   g_object_notify (G_OBJECT (video_texture), "duration");
+  if (pos >= ulLength)
+    clutter_threads_add_idle_full (G_PRIORITY_HIGH_IDLE,
+				   emit_eos_idle_func,
+				   video_texture,
+				   NULL);
 }
 
+/* Probably gets called with a mutex held in helix */
 static void
 on_state_change_cb (unsigned short old_state, unsigned short new_state, void *context)
 {
@@ -545,14 +563,8 @@ on_state_change_cb (unsigned short old_state, unsigned short new_state, void *co
 
   priv->state = new_state;
   priv->can_seek  = player_canseek(priv->player);
-    
-  g_object_notify (G_OBJECT (video_texture), "can-seek");
 
-  if (old_state != new_state && new_state == PLAYER_STATE_READY) 
-    {
-      g_object_notify (G_OBJECT (video_texture), "position");
-      g_signal_emit_by_name (CLUTTER_MEDIA(video_texture), "eos");
-    }
+  g_object_notify (G_OBJECT (video_texture), "can-seek");
 }
 
 static gboolean
@@ -583,7 +595,7 @@ clutter_helix_video_render_idle_func (gpointer data)
 					      4,
 					      CLUTTER_TEXTURE_RGB_FLAG_BGR,
 					      &error))
-	g_warning ("clutter_texture_set_from_rgb_data: %s", error->message);
+        g_warning ("clutter_texture_set_from_rgb_data: %s", error->message);
     }
   else if (priv->cid == CID_LIBVA)
     {
@@ -622,10 +634,10 @@ on_error_cb (unsigned long code, char *message, void *context)
 {
   GError *error;
   ClutterHelixVideoTexture *video_texture = (ClutterHelixVideoTexture *)context;
-  
+
   error = g_error_new (g_quark_from_string ("clutter-helix"),
-		       (int) code,
-		       message);
+          (int) code,
+          message);
   g_signal_emit_by_name (CLUTTER_MEDIA(video_texture), "error", error);
 
   g_error_free (error);
@@ -657,16 +669,17 @@ clutter_helix_video_texture_init (ClutterHelixVideoTexture *video_texture)
     on_new_frame_cb,
     on_error_cb
   };
-  
+
   video_texture->priv  = priv =
     G_TYPE_INSTANCE_GET_PRIVATE (video_texture,
-                                 CLUTTER_HELIX_TYPE_VIDEO_TEXTURE,
-                                 ClutterHelixVideoTexturePrivate);
+				 CLUTTER_HELIX_TYPE_VIDEO_TEXTURE,
+				 ClutterHelixVideoTexturePrivate);
   priv->state = PLAYER_STATE_READY;
   get_player(&priv->player, &callbacks, (void *)video_texture);
 
   priv->async_queue = g_async_queue_new ();
 }
+
 
 /**
  * clutter_helix_video_texture_new:
@@ -679,7 +692,7 @@ ClutterActor*
 clutter_helix_video_texture_new (void)
 {
   return g_object_new (CLUTTER_HELIX_TYPE_VIDEO_TEXTURE,
-                       "tiled", FALSE,
+                       "disable-slicing", TRUE,
                        NULL);
 }
 
