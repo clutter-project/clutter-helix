@@ -80,7 +80,7 @@ PKG_CHECK_MODULES(CLUTTER, [$pkg_modules])
 
 dnl ========================================================================
 
-pkg_modules="helix-player"
+pkg_modules="hxmediasink"
 PKG_CHECK_MODULES(SURFACE, [$pkg_modules])
 
 dnl ========================================================================
