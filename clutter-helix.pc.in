@@ -8,4 +8,4 @@ Description: Clutter Helix integration
 Version: @VERSION@
 Libs: -L${libdir} -lclutter-helix-@CLUTTER_HELIX_MAJORMINOR@ 
 Cflags: -I${includedir}/clutter-@CLUTTER_HELIX_MAJORMINOR@/clutter-helix
-Requires: clutter-@CLUTTER_HELIX_MAJORMINOR@
+Requires: clutter-@CLUTTER_HELIX_MAJORMINOR@ hxmediasink

@@ -50,7 +50,7 @@ struct _ClutterHelixAudioPrivate
   char             *uri;
   gboolean          can_seek;
   int               buffer_percent;
-  int               duration;
+  gdouble           duration;
   guint             tick_timeout_id;
   EHXPlayerState    state;
   GAsyncQueue      *async_queue;
@@ -65,16 +65,16 @@ enum {
   /* ClutterMedia proprs */
   PROP_URI,
   PROP_PLAYING,
-  PROP_POSITION,
-  PROP_VOLUME,
+  PROP_PROGRESS,
+  PROP_AUDIO_VOLUME,
   PROP_CAN_SEEK,
-  PROP_BUFFER_PERCENT,
+  PROP_BUFFER_FILL,
   PROP_DURATION
 };
 
 #define TICK_TIMEOUT 0.5
 
-static void clutter_media_init (ClutterMediaInterface *iface);
+static void clutter_media_init (ClutterMediaIface *iface);
 
 static gboolean tick_timeout (ClutterHelixAudio *audio);
 
@@ -133,7 +133,7 @@ set_uri (ClutterMedia *media,
     }
   
   priv->can_seek = FALSE;
-  priv->duration = 0;
+  priv->duration = 0.0;
 
   
   /*
@@ -143,7 +143,7 @@ set_uri (ClutterMedia *media,
   g_object_notify (G_OBJECT (audio), "uri");
   g_object_notify (G_OBJECT (audio), "can-seek");
   g_object_notify (G_OBJECT (audio), "duration");
-  g_object_notify (G_OBJECT (audio), "position");
+  g_object_notify (G_OBJECT (audio), "progress");
 }
 
 static const char *
@@ -187,7 +187,7 @@ set_playing (ClutterMedia *media,
     }
   
   g_object_notify (G_OBJECT (audio), "playing");
-  g_object_notify (G_OBJECT (audio), "position");
+  g_object_notify (G_OBJECT (audio), "progress");
 }
 
 static gboolean
@@ -208,7 +208,7 @@ get_playing (ClutterMedia *media)
 
 static void
 set_position (ClutterMedia *media,
-	      int              position) /* seconds */
+	      gdouble              position) /* seconds */
 {
   ClutterHelixAudio *audio = CLUTTER_HELIX_AUDIO(media);
   ClutterHelixAudioPrivate *priv; 
@@ -223,12 +223,12 @@ set_position (ClutterMedia *media,
   player_seek(priv->player, position * 1000);
 }
 
-static int
+static double
 get_position (ClutterMedia *media)
 {
   ClutterHelixAudio *audio = CLUTTER_HELIX_AUDIO(media);
   ClutterHelixAudioPrivate *priv; 
-  gint32 position;
+  guint32 position;
 
   g_return_val_if_fail (CLUTTER_HELIX_IS_AUDIO (audio), -1);
 
@@ -238,7 +238,51 @@ get_position (ClutterMedia *media)
     return -1;
   
   position = get_curr_playtime(priv->player);
-  return (position / 1000);
+  return ((gdouble)position / (gdouble)1000);
+}
+
+static gdouble get_progress (ClutterMedia *media)
+{
+  ClutterHelixAudio *audio = CLUTTER_HELIX_AUDIO(media);
+  ClutterHelixAudioPrivate *priv; 
+  
+  g_return_val_if_fail (CLUTTER_HELIX_IS_AUDIO (audio), 0.0);
+ 
+  gdouble position;
+  gdouble progress = 0.0;
+
+
+  priv = audio->priv;
+
+  if (!priv->player)
+    return 0.0;
+  
+  position = get_position(media);
+  if (priv->duration > 0.0)
+    progress = position/priv->duration;
+
+  return progress;
+}
+
+static void
+set_progress (ClutterMedia *media,
+	      gdouble progress)
+{
+  if (progress >=0 && progress <= 1.0) {
+    ClutterHelixAudio *audio = CLUTTER_HELIX_AUDIO(media);
+    ClutterHelixAudioPrivate *priv; 
+
+    g_return_if_fail (CLUTTER_HELIX_IS_AUDIO (audio));
+
+    priv = audio->priv;
+    
+    gdouble position = 0;
+    if (priv->duration > 0) {
+      position = (gint)(progress * priv->duration);
+    }
+    set_position(media, position);
+    g_object_notify (G_OBJECT (audio), "progress");
+  }
 }
 
 static void
@@ -257,7 +301,7 @@ set_volume (ClutterMedia *media,
  
   unsigned short volume_in_u16 = volume * (0xffff);
   player_setvolume(priv->player, volume_in_u16);  
-  g_object_notify (G_OBJECT (audio), "volume");
+  g_object_notify (G_OBJECT (audio), "audio-volume");
 }
 
 static double
@@ -304,7 +348,7 @@ get_buffer_percent (ClutterMedia *media)
   return audio->priv->buffer_percent;
 }
 
-static int
+static gdouble 
 get_duration (ClutterMedia *media)
 {
   ClutterHelixAudio *audio = CLUTTER_HELIX_AUDIO(media);
@@ -316,19 +360,8 @@ get_duration (ClutterMedia *media)
 
 
 static void
-clutter_media_init (ClutterMediaInterface *iface)
+clutter_media_init (ClutterMediaIface *iface)
 {
-  iface->set_uri            = set_uri;
-  iface->get_uri            = get_uri;
-  iface->set_playing        = set_playing;
-  iface->get_playing        = get_playing;
-  iface->set_position       = set_position;
-  iface->get_position       = get_position;
-  iface->set_volume         = set_volume;
-  iface->get_volume         = get_volume;
-  iface->can_seek           = can_seek;
-  iface->get_buffer_percent = get_buffer_percent;
-  iface->get_duration       = get_duration;
 }
 
 static void
@@ -391,20 +424,16 @@ clutter_helix_audio_set_property (GObject      *object,
   switch (property_id)
     {
     case PROP_URI:
-      clutter_media_set_uri (CLUTTER_MEDIA(audio), 
-			     g_value_get_string (value));
+      set_uri (CLUTTER_MEDIA(audio), g_value_get_string (value));
       break;
     case PROP_PLAYING:
-      clutter_media_set_playing (CLUTTER_MEDIA(audio),
-				 g_value_get_boolean (value));
+      set_playing (CLUTTER_MEDIA(audio), g_value_get_boolean (value));
       break;
-    case PROP_POSITION:
-      clutter_media_set_position (CLUTTER_MEDIA(audio),
-				  g_value_get_int (value));
+    case PROP_PROGRESS:
+      set_progress (CLUTTER_MEDIA(audio), g_value_get_double (value));
       break;
-    case PROP_VOLUME:
-      clutter_media_set_volume (CLUTTER_MEDIA(audio),
-				g_value_get_double (value));
+    case PROP_AUDIO_VOLUME:
+      set_volume (CLUTTER_MEDIA(audio), g_value_get_double (value));
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -426,25 +455,25 @@ clutter_helix_audio_get_property (GObject    *object,
   switch (property_id)
     {
     case PROP_URI:
-      g_value_set_string (value, clutter_media_get_uri (media));
+      g_value_set_string (value, get_uri (media));
       break;
     case PROP_PLAYING:
-      g_value_set_boolean (value, clutter_media_get_playing (media));
+      g_value_set_boolean (value, get_playing (media));
       break;
-    case PROP_POSITION:
-      g_value_set_int (value, clutter_media_get_position (media));
+    case PROP_PROGRESS:
+      g_value_set_double (value, get_progress (media));
       break;
-    case PROP_VOLUME:
-      g_value_set_double (value, clutter_media_get_volume (media));
+    case PROP_AUDIO_VOLUME:
+      g_value_set_double (value, get_volume (media));
       break;
     case PROP_CAN_SEEK:
-      g_value_set_boolean (value, clutter_media_get_can_seek (media));
+      g_value_set_boolean (value, can_seek (media));
       break;
-    case PROP_BUFFER_PERCENT:
-      g_value_set_int (value, clutter_media_get_buffer_percent (media));
+    case PROP_BUFFER_FILL:
+      g_value_set_double (value, ((gdouble)get_buffer_percent (media))/(gdouble)100);
       break;
     case PROP_DURATION:
-      g_value_set_int (value, clutter_media_get_duration (media));
+      g_value_set_double (value, get_duration (media));
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -467,12 +496,11 @@ clutter_helix_audio_class_init (ClutterHelixAudioClass *klass)
   /* Interface props */
   g_object_class_override_property (object_class, PROP_URI, "uri");
   g_object_class_override_property (object_class, PROP_PLAYING, "playing");
-  g_object_class_override_property (object_class, PROP_POSITION, "position");
-  g_object_class_override_property (object_class, PROP_VOLUME, "volume");
+  g_object_class_override_property (object_class, PROP_PROGRESS, "progress");
+  g_object_class_override_property (object_class, PROP_AUDIO_VOLUME, "audio-volume");
   g_object_class_override_property (object_class, PROP_CAN_SEEK, "can-seek");
   g_object_class_override_property (object_class, PROP_DURATION, "duration");
-  g_object_class_override_property (object_class, PROP_BUFFER_PERCENT, 
-				    "buffer-percent" );
+  g_object_class_override_property (object_class, PROP_BUFFER_FILL, "buffer-fill");
 }
 
 static void
@@ -485,7 +513,7 @@ on_buffering_cb (unsigned int flags,
   if (audio && audio->priv)
     audio->priv->buffer_percent = percentage;
   
-  g_object_notify (G_OBJECT (audio), "buffer-percent");
+  g_object_notify (G_OBJECT (audio), "buffer-fill");
 }
 
 static void
@@ -525,7 +553,7 @@ on_state_change_cb (unsigned short old_state, unsigned short new_state, void *co
 
   if (old_state != new_state && new_state == PLAYER_STATE_READY) 
     {
-      g_object_notify (G_OBJECT (audio), "position");
+      g_object_notify (G_OBJECT (audio), "progress");
       g_signal_emit_by_name (CLUTTER_MEDIA(audio), "eos");
     }
 }
@@ -537,8 +565,7 @@ on_error_cb (unsigned long code, char *message, void *context)
   ClutterHelixAudio *audio = (ClutterHelixAudio *)context;
   
   error = g_error_new (g_quark_from_string ("clutter-helix"),
-		       (int) code,
-		       message);
+		       (int) code,  message);
   g_signal_emit_by_name (CLUTTER_MEDIA(audio), "error", error);
 
   g_error_free (error);
@@ -554,7 +581,7 @@ tick_timeout (ClutterHelixAudio *audio)
   if (!priv->player)
     return FALSE;
 
-  g_object_notify (G_OBJECT (audio), "position");
+  g_object_notify (G_OBJECT (audio), "progress");
 
   return TRUE;
 }

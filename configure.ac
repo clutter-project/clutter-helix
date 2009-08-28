@@ -1,8 +1,8 @@
 # clutter package version number, (as distinct from shared library version)
 # An odd micro number indicates in-progress developmen
 # An even micro number indicates a released version.
-m4_define(clutter_helix_major_version, 0)
-m4_define(clutter_helix_minor_version, 8)
+m4_define(clutter_helix_major_version, 1)
+m4_define(clutter_helix_minor_version, 0)
 m4_define(clutter_helix_micro_version, 0)
 
 m4_define([clutter_helix_version],
@@ -74,7 +74,7 @@ AC_CHECK_FUNCS([memset munmap strcasecmp strdup])
 
 dnl ========================================================================
 
-pkg_modules="clutter-0.8 >= 0.8.0"
+pkg_modules="clutter-1.0 >= 1.0.0"
 PKG_CHECK_MODULES(CLUTTER, [$pkg_modules])
 
 
