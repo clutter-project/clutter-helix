@@ -876,6 +876,17 @@ get_buffer_percent (ClutterMedia *media)
   return video_texture->priv->buffer_percent;
 }
 
+static int
+get_duration(ClutterMedia *media)
+{
+
+  ClutterHelixVideoTexture *video_texture = CLUTTER_HELIX_VIDEO_TEXTURE (media);
+
+  g_return_val_if_fail (CLUTTER_HELIX_IS_VIDEO_TEXTURE (video_texture), -1);
+  
+  return video_texture->priv->duration;
+}
+
 static void
 clutter_media_init (ClutterMediaIface *iface)
 {
@@ -1004,7 +1015,7 @@ clutter_helix_video_texture_get_property (GObject    *object,
       g_value_set_int (value, (gdouble)get_buffer_percent (media)/(gdouble)100);
       break;
     case PROP_DURATION:
-      g_value_set_double (value, clutter_media_get_duration (media));
+      g_value_set_double (value, get_duration (media));
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
