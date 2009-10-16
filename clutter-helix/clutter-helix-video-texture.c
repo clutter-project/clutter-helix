@@ -1388,9 +1388,12 @@ clutter_helix_video_texture_init (ClutterHelixVideoTexture *video_texture)
 ClutterActor*
 clutter_helix_video_texture_new (void)
 {
+  if(!getenv("HELIX_LIBS"))
+    setenv("HELIX_LIBS" , "/opt/real/RealPlayer", 0);
+
   return g_object_new (CLUTTER_HELIX_TYPE_VIDEO_TEXTURE,
-                       "disable-slicing",
-                       TRUE,
-                       NULL);
+            "disable-slicing",
+            TRUE,
+            NULL);
 }
 
