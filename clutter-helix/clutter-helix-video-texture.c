@@ -603,6 +603,11 @@ static void on_error_cb (unsigned long code,
                          char         *message,
                          void         *context);
 
+static gboolean get_playing (ClutterMedia *media);
+
+static void set_playing (ClutterMedia *media,
+                         gboolean      playing);
+
 /* Interface implementation */
 static void
 set_uri (ClutterMedia    *media,
@@ -610,6 +615,7 @@ set_uri (ClutterMedia    *media,
 {
   ClutterHelixVideoTexture *video_texture = CLUTTER_HELIX_VIDEO_TEXTURE(media);
   ClutterHelixVideoTexturePrivate *priv; 
+  gboolean is_playing = FALSE;
 
   g_return_if_fail (CLUTTER_HELIX_IS_VIDEO_TEXTURE (video_texture));
 
@@ -620,6 +626,7 @@ set_uri (ClutterMedia    *media,
 
   if (priv->uri)
     {
+      is_playing = get_playing (media);
       player_stop (priv->player);
       g_free (priv->uri);
     }
@@ -641,6 +648,8 @@ set_uri (ClutterMedia    *media,
 						 video_texture);
         }
       player_openurl (priv->player, priv->uri);
+      if (is_playing)
+        player_begin (priv->player);
     } 
   else 
     {
