@@ -911,6 +911,13 @@ clutter_helix_video_texture_dispose (GObject *object)
   self = CLUTTER_HELIX_VIDEO_TEXTURE (object); 
   priv = self->priv;
 
+  if (priv->player) 
+    {
+      player_stop (priv->player);
+      put_player (priv->player);
+      priv->player = NULL;
+    }
+
   if (priv->renderer_state == CLUTTER_HELIX_RENDERER_RUNNING ||
       priv->renderer_state == CLUTTER_HELIX_RENDERER_NEED_GC)
     {
@@ -928,13 +935,6 @@ clutter_helix_video_texture_dispose (GObject *object)
     {
       g_mutex_free (priv->id_lock);
       priv->id_lock = NULL;
-    }
-
-
-  if (priv->player) 
-    {
-      put_player(priv->player);
-      priv->player = NULL;
     }
 
  if (priv->tick_timeout_id > 0) 
@@ -1373,17 +1373,17 @@ clutter_helix_video_texture_init (ClutterHelixVideoTexture *video_texture)
     on_error_cb
   };
 
-
   video_texture->priv  = priv =
     G_TYPE_INSTANCE_GET_PRIVATE (video_texture,
                                  CLUTTER_HELIX_TYPE_VIDEO_TEXTURE,
 				                         ClutterHelixVideoTexturePrivate);
-  get_player(&priv->player, &callbacks, (void *)video_texture);
 
   priv->id_lock = g_mutex_new();
 
   priv->renderers = clutter_helix_build_renderers_list (&priv->syms);
   priv->renderer_state = CLUTTER_HELIX_RENDERER_STOPPED;
+
+  get_player(&priv->player, &callbacks, (void *)video_texture);
 }
 
 
