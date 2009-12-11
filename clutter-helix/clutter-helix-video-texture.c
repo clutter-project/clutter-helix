@@ -1093,9 +1093,13 @@ on_pos_length_cb (unsigned int pos, unsigned int ulLength, void *context)
   /**
    * Determine the duration.
    **/
-  priv->duration = ulLength / 1000;
+  int new_duration = ulLength / 1000;
+  if (priv->duration != new_duration)
+    {
+      priv->duration = new_duration;
+      g_object_notify (G_OBJECT (video_texture), "duration");
+    }
 
-  g_object_notify (G_OBJECT (video_texture), "duration");
   if (pos >= ulLength)
     clutter_threads_add_idle_full (G_PRIORITY_HIGH_IDLE,
 				                           emit_eos_idle_func,
@@ -1224,11 +1228,12 @@ clutter_helix_video_render_idle_func (gpointer data)
       priv->renderer_state = CLUTTER_HELIX_RENDERER_RUNNING;
     }
 
+  priv->renderer->upload (video_texture, buffer);
+  free (buffer);
+
   g_mutex_lock (priv->id_lock);
   priv->idle_id = 0;
   g_mutex_unlock (priv->id_lock);
-  priv->renderer->upload (video_texture, buffer);
-  free (buffer);
 
   return FALSE;
 }
